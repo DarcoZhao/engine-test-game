@@ -1,104 +1,78 @@
-interface Command {
-    _hasBeenCancelled: boolean;
-    execute(callback: Function): void;
-
-    cancel(callback: Function): void;
-
-}
-
-class WalkCommand implements Command {
-    private x;
-    private y;
-    _hasBeenCancelled = false;
-    constructor(x: number, y: number) {
+class WalkCommand {
+    constructor(x, y) {
+        this._hasBeenCancelled = false;
         this.x = x;
         this.y = y;
     }
-
-    execute(callback: Function): void {
+    execute(callback) {
         var service = MAP.MapService.getInstance();
-
         Player.getInstance().Move(service.gameStateMachine, new Vector2(this.x, this.y), () => {
             callback();
         });
     }
-
-    cancel(callback: Function) {
+    cancel(callback) {
         /* GameScene.getCurrentScene().stopMove(function () {
              callback();
          })*/
-         Player.getInstance().searchAgent._path.slice(0);
-         callback();
+        Player.getInstance().searchAgent._path.slice(0);
+        callback();
     }
 }
-
-class FightCommand implements Command {
-    _hasBeenCancelled = false;
-
-    execute(callback: Function): void {
+class FightCommand {
+    constructor() {
+        this._hasBeenCancelled = false;
+    }
+    execute(callback) {
         //get monster
         var mservice = MonsterService.getInstance();
         var monster = mservice.addMonster();
         //kill monster
         engine.setTimeout(() => {
-            engine.click(mservice.x + monster.x + monster.width / 2,
-            mservice.y + monster.y + monster.width / 2)//执行monster上的listener，即monsterService.onTap
+            engine.click(mservice.x + monster.x + monster.width / 2, mservice.y + monster.y + monster.width / 2); //执行monster上的listener，即monsterService.onTap
         }, 200);
-
         engine.setTimeout(() => {
             if (!this._hasBeenCancelled) {
                 callback();
             }
         }, 500);
-
     }
-
-    cancel(callback: Function) {
-        console.log("脱离战斗")
+    cancel(callback) {
+        console.log("脱离战斗");
         this._hasBeenCancelled = true;
         engine.setTimeout(function () {
             callback();
-        }, 100)
-
+        }, 100);
     }
 }
-
-class TalkCommand implements Command {
-    _hasBeenCancelled = false;
-    npc: NPC;
-
-    constructor(npcid: string) {
+class TalkCommand {
+    constructor(npcid) {
+        this._hasBeenCancelled = false;
         this.npc = MAP.MapService.getInstance().getNPC(npcid);
     }
-
-    execute(callback: Function): void {
+    execute(callback) {
         this.npc.showDialog();
         var service = UIService.getInstance();
-        var key = engine.setInterval(()=> {
-            if(service.nextDialog()){
+        var key = engine.setInterval(() => {
+            if (service.nextDialog()) {
                 this.npc.isTalking = false;
                 callback();
                 engine.clearInterval(key);
             }
         }, 1000);
     }
-
-    cancel(callback: Function) {
+    cancel(callback) {
         console.log("关闭对话框");
     }
 }
-
 //------------------------------------------------------------------
-
 class CommandList {
-    private _list: Command[] = [];
-    private currentCommand: Command;
-    private _frozen = false;
-
-    addCommand(command: Command) {
+    constructor() {
+        this._list = [];
+        this._frozen = false;
+    }
+    addCommand(command) {
         this._list.push(command);
     }
-
     cancel() {
         this._frozen = true;
         var command = this.currentCommand;
@@ -107,39 +81,34 @@ class CommandList {
                 this._frozen = false;
                 console.log("时间过长，自动解除frozen");
             }
-
         }, 5000);
         if (command) {
             command.cancel(() => {
                 this._frozen = false;
             });
             this._list = [];
-        } else {
+        }
+        else {
             this._frozen = false;
             this._list = [];
         }
-
     }
-
     execute() {
         if (this._frozen) {
             engine.setTimeout(this.execute, 100);
             console.log("frozen");
             return;
         }
-
         var command = this._list.shift();
         this.currentCommand = command;
         if (command) {
             console.log("执行下一命令", command);
             command.execute(() => {
-                this.execute()
-            })
-
+                this.execute();
+            });
         }
         else {
             //console.log("全部命令执行完毕")
         }
     }
-
 }

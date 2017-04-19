@@ -2,8 +2,7 @@
 	"compilerOptions": {
 		"target": "es6",
 		"module": "commonjs",
-		"outDir": "./out",
-		"experimentalDecorators":true
+		"outDir": "./out"
 	},
 	"include": [
 		"src/**/*.ts",
